@@ -15,6 +15,7 @@ NUM_OF_SIMULATIONS = 5
 DEVELOPMENT_CYCLES = 30 # time to die or recover from infection
 DEATH_RATE = 0.2
 INFECTION_RADIUS = 2
+CHANCE_TO_MOVE = 0.2
 
 def printGrid():
     stringToPrint = ""
@@ -54,7 +55,7 @@ class person:
         return False # if could not move
         
     def moveRand(self):
-        if(not self.dead): # if agent is alive
+        if(not self.dead and random.random() <= CHANCE_TO_MOVE): # if agent is alive and player decides to move
             clip = lambda num: max(0, min(GRID_SIZE-1, num)) #only allow numbers between 0 and the GRID_SIZE-1
             self.moveTo(
                 clip(self.x + (random.randrange(-1,2))), # try random direction, if they can't move don't retry
@@ -170,17 +171,17 @@ for (i,d,r) in itertools.zip_longest(infectedListList, deadListList, recoveredLi
         if (len(i) > index):
             infectedAverage[index] += i[index]
         else:
-            infectedAverage[index] += i[-1]
+            infectedAverage[index] += i[-1] #if end of list use last element
         
         if (len(d) > index):
             deadAverage[index] += d[index]
         else:
-            deadAverage[index] += d[-1]
+            deadAverage[index] += d[-1] #if end of list use last element
         
         if (len(i) > index):
             recoveredAverage[index] += r[index]
         else:
-            recoveredAverage[index] += r[-1]
+            recoveredAverage[index] += r[-1] #if end of list use last element
 
 averageDiv = lambda x : x/NUM_OF_SIMULATIONS #lambda function for dividing the added totals to get average
 infectedAverage = list(map(averageDiv, infectedAverage))
@@ -194,7 +195,7 @@ plt.stackplot(np.arange(0,maxCycle),infectedAverage,deadAverage,recoveredAverage
 plt.legend(loc='upper left')
 plt.ylim(top=POP_SIZE)
 plt.xlim(right=maxCycle-1)
-plt.title(f" Average of {NUM_OF_SIMULATIONS} Simulations with {POP_SIZE} Agents in a {GRID_SIZE}X{GRID_SIZE} Grid \n Infection Rate:{INFECT_RATE}  Infection Radius:{INFECTION_RADIUS}  Time To Recover:{DEVELOPMENT_CYCLES} Cycles \n Deathrate:{DEATH_RATE}", fontsize=32)
+plt.title(f" Average of {NUM_OF_SIMULATIONS} Simulations with {POP_SIZE} Agents in a {GRID_SIZE}X{GRID_SIZE} Grid \n Infection Rate:{INFECT_RATE}  Infection Radius:{INFECTION_RADIUS}  Time To Recover:{DEVELOPMENT_CYCLES} Cycles \n Deathrate:{DEATH_RATE}  Chanse to Move: {CHANCE_TO_MOVE}", fontsize=32)
 plt.xlabel("Time (Cycles)", fontsize = 30)
 plt.ylabel("Number of Infected", fontsize = 30)
 plt.savefig("tempPlot.png",bbox_inches='tight')
