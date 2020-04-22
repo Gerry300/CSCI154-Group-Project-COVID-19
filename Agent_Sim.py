@@ -1,4 +1,5 @@
 # This is a basic agent based disease spread simulation for our simulation class.
+import itertools
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy.matlib
@@ -10,6 +11,7 @@ POP_SIZE = 8000
 INFECTED_PER = 0.01 # Percentage of init population infected
 INFECT_RATE = 0.7 # Chance of spreading
 NUM_OF_CYCLES = 200
+NUM_OF_SIMULATIONS = 5
 DEVELOPMENT_CYCLES = 30 # time to die or recover from infection
 DEATH_RATE = 0.2
 INFECTION_RADIUS = 2
@@ -85,76 +87,114 @@ class person:
                     self.recovered = True
             if(self.infected):
                 self.infectedTime += 1
-mainGrid = [] #grid of agents positions 
-for row in range(0,GRID_SIZE):
-    mainGrid.append([None]*GRID_SIZE) # init with none
-    
-personList = [] #list of agents
-for agents in range(0,POP_SIZE):
-    posFound = False
-    xPos = random.randrange(GRID_SIZE)
-    yPos = random.randrange(GRID_SIZE)
-    
-    while(not posFound):
-        if(mainGrid[xPos][yPos] == None): #if a person does not exist on that tile
-            temp = person(xPos, yPos) #temp so both personList and mainGrid reference same object
-            personList.append(temp)
-            mainGrid[xPos][yPos] = temp
-            posFound = True
-        else: #else try a random new position
-            xPos = random.randrange(GRID_SIZE)
-            yPos = random.randrange(GRID_SIZE)
-            
 
-for agent in random.sample(personList,int (POP_SIZE*INFECTED_PER)): # infect INFECTED_PER of init populations
-    agent.infected = True
-    agent.infectedTime = random.randrange(0,DEVELOPMENT_CYCLES)
-
-
-cycleInfected = [POP_SIZE*INFECTED_PER] #init with initial infection numbers
-cycleDead = [0]
-cycleRecovered = [0]
 
 #start simulation
-for cycle in range(NUM_OF_CYCLES):
-    if(cycle%10 == 0):
-         print(f'{cycle}/{NUM_OF_CYCLES}')
-    
-    cycleInfected.append(0)
-    cycleDead.append(0)
-    cycleRecovered.append(0)
-    
-    for agent in personList: # run infect for each agent
-        agent.infectOthers(INFECT_RATE, INFECTION_RADIUS)
-        agent.stepSickness()
+maxCycle = 0
+infectedListList = []
+deadListList = []
+recoveredListList = []
+
+for simulation in range(NUM_OF_SIMULATIONS):
+    #initialize simulation
+    mainGrid = [] #grid of agents positions 
+    for row in range(0,GRID_SIZE):
+        mainGrid.append([None]*GRID_SIZE) # init with none
         
-    for agent in personList: # move each agent and add up infected
-        agent.moveRand()
-        if(agent.infected):
-            cycleInfected[-1] += 1
-        elif(agent.dead):
-            cycleDead[-1] +=1
-        elif(agent.recovered):
-            cycleRecovered[-1] +=1
+    personList = [] #list of agents
+    for agents in range(0,POP_SIZE):
+        posFound = False
+        xPos = random.randrange(GRID_SIZE)
+        yPos = random.randrange(GRID_SIZE)
+        
+        while(not posFound):
+            if(mainGrid[xPos][yPos] == None): #if a person does not exist on that tile
+                temp = person(xPos, yPos) #temp so both personList and mainGrid reference same object
+                personList.append(temp)
+                mainGrid[xPos][yPos] = temp
+                posFound = True
+            else: #else try a random new position
+                xPos = random.randrange(GRID_SIZE)
+                yPos = random.randrange(GRID_SIZE)
+                
+    
+    for agent in random.sample(personList,int (POP_SIZE*INFECTED_PER)): # infect INFECTED_PER of init populations
+        agent.infected = True
+        agent.infectedTime = random.randrange(0,DEVELOPMENT_CYCLES)
+    
+    
+    print(f"simulation {simulation+1}/{NUM_OF_SIMULATIONS}")
+    cycleInfected = [POP_SIZE*INFECTED_PER] #init with initial infection numbers
+    cycleDead = [0]
+    cycleRecovered = [0]
+    
+    for cycle in range(NUM_OF_CYCLES):
+        if(cycle%10 == 0):
+             print(f'{cycle}/{NUM_OF_CYCLES}')
+        
+        cycleInfected.append(0)
+        cycleDead.append(0)
+        cycleRecovered.append(0)
+        
+        for agent in personList: # run infect for each agent
+            agent.infectOthers(INFECT_RATE, INFECTION_RADIUS)
+            agent.stepSickness()
             
-    if(cycleDead[-1] + cycleRecovered[-1] >= POP_SIZE) or (cycleInfected[-1] == 0): # if all members of the population are removed or no more infected exist stop the sim
-        totalCycles = cycle
-        break
+        for agent in personList: # move each agent and add up infected
+            agent.moveRand()
+            if(agent.infected):
+                cycleInfected[-1] += 1
+            elif(agent.dead):
+                cycleDead[-1] +=1
+            elif(agent.recovered):
+                cycleRecovered[-1] +=1
+                
+        if(cycleDead[-1] + cycleRecovered[-1] >= POP_SIZE) or (cycleInfected[-1] == 0): # if all members of the population are removed or no more infected exist stop the sim
+            break
+    
+    maxCycle = max(maxCycle, len(cycleInfected))
+    print(len(cycleInfected))
+    #print(cycleInfected)
+    infectedListList.append(cycleInfected.copy())
+    #print(cycleDead)
+    deadListList.append(cycleDead.copy())
+    #print(cycleRecovered)
+    recoveredListList.append(cycleRecovered.copy())
+    
+infectedAverage = [0]*maxCycle
+deadAverage = [0]*maxCycle
+recoveredAverage = [0]*maxCycle
+#average simulations
+for (i,d,r) in itertools.zip_longest(infectedListList, deadListList, recoveredListList): #sum values for infected, dead and recoverd
+    for index in range(maxCycle):
+        if (len(i) > index):
+            infectedAverage[index] += i[index]
+        else:
+            infectedAverage[index] += i[-1]
+        
+        if (len(d) > index):
+            deadAverage[index] += d[index]
+        else:
+            deadAverage[index] += d[-1]
+        
+        if (len(i) > index):
+            recoveredAverage[index] += r[index]
+        else:
+            recoveredAverage[index] += r[-1]
 
-print(cycleInfected)
-print(cycleDead)
-print(cycleRecovered)
-
-totalCycles = len(cycleInfected)
+averageDiv = lambda x : x/NUM_OF_SIMULATIONS #lambda function for dividing the added totals to get average
+infectedAverage = list(map(averageDiv, infectedAverage))
+deadAverage = list(map(averageDiv, deadAverage))
+recoveredAverage = list(map(averageDiv, recoveredAverage))
 
 plt.figure(figsize=(20,10))
 #plt.xscale("log")
 #plt.yscale("log")
-plt.stackplot(np.arange(0,totalCycles),cycleInfected,cycleDead,cycleRecovered, labels=["Infected", "Dead", "Recovered"])
+plt.stackplot(np.arange(0,maxCycle),infectedAverage,deadAverage,recoveredAverage, labels=["Infected", "Dead", "Recovered"])
 plt.legend(loc='upper left')
 plt.ylim(top=POP_SIZE)
-plt.xlim(right=totalCycles-1)
-plt.title(f"{totalCycles} Cycle Simulation with {POP_SIZE} Agents \n (Infection Rate:{INFECT_RATE}  Infection Radius:{INFECTION_RADIUS}  Time To Recover:{DEVELOPMENT_CYCLES} Cycles)", fontsize=32)
+plt.xlim(right=maxCycle-1)
+plt.title(f" Average of {NUM_OF_SIMULATIONS} Simulations with {POP_SIZE} Agents in a {GRID_SIZE}X{GRID_SIZE} Grid \n Infection Rate:{INFECT_RATE}  Infection Radius:{INFECTION_RADIUS}  Time To Recover:{DEVELOPMENT_CYCLES} Cycles \n Deathrate:{DEATH_RATE}", fontsize=32)
 plt.xlabel("Time (Cycles)", fontsize = 30)
 plt.ylabel("Number of Infected", fontsize = 30)
-plt.savefig("tempPlot.png")
+plt.savefig("tempPlot.png",bbox_inches='tight')
