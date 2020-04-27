@@ -10,12 +10,15 @@ GRID_SIZE = 300
 POP_SIZE = 8000
 INFECTED_PER = 0.01 # Percentage of init population infected
 INFECT_RATE = 0.7 # Chance of spreading
-NUM_OF_CYCLES = 200
+NUM_OF_CYCLES = 600
 NUM_OF_SIMULATIONS = 5
-DEVELOPMENT_CYCLES = 30 # time to die or recover from infection
-DEATH_RATE = 0.2
+DEVELOPMENT_CYCLES = 10 # time to die or recover from infection
+DEATH_RATE = 0.5
+DEATH_MUL_WHEN_OVER_CAP = 2.0 #amount of change in death rate when over capacity ex: deathrate*Deathmul if current infected > capacity
+CAPACITY = 2000
 INFECTION_RADIUS = 2
-CHANCE_TO_MOVE = 0.2
+CHANCE_TO_MOVE = 1.0
+
 
 def printGrid():
     stringToPrint = ""
@@ -75,11 +78,11 @@ class person:
                         if(mainGrid[x][y].recovered != True and mainGrid[x][y].dead != True and random.random() <= chance): #not dead or immune then possibly inffect
                             mainGrid[x][y].infected = True
                     
-    def stepSickness(self):
+    def stepSickness(self, aboveCapacity):
         if(not self.dead): # if agent is alive
             if(self.infectedTime >= DEVELOPMENT_CYCLES and not self.recovered): #if sickness has develped either kill or recover the agent
                 self.infected = False
-                if(random.random() <= DEATH_RATE):
+                if(random.random() <= (DEATH_RATE if not aboveCapacity else (DEATH_RATE * DEATH_MUL_WHEN_OVER_CAP))):
                     self.dead = True
                     mainGrid[self.x][self.y] = None # clear current tile
                     self.x = None
@@ -137,9 +140,10 @@ for simulation in range(NUM_OF_SIMULATIONS):
         cycleDead.append(0)
         cycleRecovered.append(0)
         
+        aboveCap = True if cycleInfected[-1] > CAPACITY else False
         for agent in personList: # run infect for each agent
             agent.infectOthers(INFECT_RATE, INFECTION_RADIUS)
-            agent.stepSickness()
+            agent.stepSickness(True if cycleInfected[-2] > CAPACITY else False)
             
         for agent in personList: # move each agent and add up infected
             agent.moveRand()
@@ -195,7 +199,7 @@ plt.stackplot(np.arange(0,maxCycle),infectedAverage,deadAverage,recoveredAverage
 plt.legend(loc='upper left')
 plt.ylim(top=POP_SIZE)
 plt.xlim(right=maxCycle-1)
-plt.title(f" Average of {NUM_OF_SIMULATIONS} Simulations with {POP_SIZE} Agents in a {GRID_SIZE}X{GRID_SIZE} Grid \n Infection Rate:{INFECT_RATE}  Infection Radius:{INFECTION_RADIUS}  Time To Recover:{DEVELOPMENT_CYCLES} Cycles \n Deathrate:{DEATH_RATE}  Chanse to Move: {CHANCE_TO_MOVE}", fontsize=32)
+plt.title(f"Average of {NUM_OF_SIMULATIONS} Simulations with {POP_SIZE} Agents in a {GRID_SIZE}X{GRID_SIZE} Grid \nInfection Rate:{INFECT_RATE}  Infection Radius:{INFECTION_RADIUS}  Time To Recover:{DEVELOPMENT_CYCLES} Cycles \nDeathrate:{DEATH_RATE}  Chance to Move: {CHANCE_TO_MOVE} \nHealthcare Capacity:{CAPACITY}  Death Rate Multiplier When Above Capacity:{DEATH_MUL_WHEN_OVER_CAP}", fontsize=32)
 plt.xlabel("Time (Cycles)", fontsize = 30)
 plt.ylabel("Number of Infected", fontsize = 30)
 plt.savefig("tempPlot.png",bbox_inches='tight')
